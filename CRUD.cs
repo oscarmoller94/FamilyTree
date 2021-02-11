@@ -8,35 +8,41 @@ namespace FamilyTree
 {
     class CRUD
     {
-        public string DatabaseName { get; set; } = "Humans";
+        internal SQLDatabase SqlDatabase { get; set; } = new SQLDatabase("Genealogy");
         public void Create(Person person)
         {
-            var db = new SQLDatabase();
-
-            var connString = string.Format(db.ConnectionString, DatabaseName);
-            using (var cnn = new SqlConnection(connString))
-            {
-                cnn.Open();
-                var sql = "INSERT INTO People (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate @MotherId, @FatherId)";
-                using (var command = new SqlCommand(sql, cnn))
-                {
-                    command.Parameters.AddWithValue("@firstName", person.FirstName);
-                    command.Parameters.AddWithValue("@lastName", person.LastName);
-                    command.Parameters.AddWithValue("@birthDate", person.BirthDate);
-                    command.Parameters.AddWithValue("@deathDate", person.DeathDate);
-                    command.Parameters.AddWithValue("@motherId", person.MotherId);
-                    command.Parameters.AddWithValue("@fatherId", person.FatherId);
-                    command.ExecuteNonQuery();
-                }
-            }
+            var sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @MotherId, @FatherId)";
+            (string, string)[] parameters = FillParameters(person);
+            SqlDatabase.ExecuteSQL(sql, parameters);
+            GiveIdToPersonObject(person);
         }
+
+        private (string, string)[] FillParameters(Person person)
+        {
+            return new (string, string)[]
+            {
+            ("@FirstName", person.FirstName),
+            ("@LastName", person.LastName),
+            ("@BirthDate", person.BirthDate),
+            ("@DeathDate", person.DeathDate),
+            ("@MotherId", person.MotherId.ToString()),
+            ("@FatherId", person.FatherId.ToString())
+            };
+        }
+
+        public void GiveIdToPersonObject(Person person)
+        {
+            var dt = new DataTable();
+            dt = SqlDatabase.GetDataTable("SELECT Id FROM Relatives WHERE FirstName = @firstName AND LastName = @lastName AND BirthDate = @birthDate",  
+                ("@firstName", person.FirstName), ("@lastName", person.LastName), ("@birthDate", person.BirthDate));
+         
+            person.Id = (int)dt.Rows[0]["Id"];
+        }
+
         public Person Read(int id)
         {
-            var db = new SQLDatabase
-            {
-                DatabaseName = DatabaseName
-            };
-            var row = db.GetDataTable("SELECT TOP 1 * from People Where firstName LIKE @id", ("@id", id.ToString()));
+
+            var row = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where Id LIKE @id", ("@id", id.ToString()));
             if (row.Rows.Count == 0)
                 return null;
 
@@ -44,23 +50,18 @@ namespace FamilyTree
         }
         public Person Read(string name)
         {
-            var db = new SQLDatabase
-            {
-                DatabaseName = DatabaseName
-            };
-
             DataTable dt;
             if (name.Contains(" "))
             {
                 var names = name.Split(' ');
-                dt = db.GetDataTable("SELECT TOP 1 * from People Where firstName LIKE @fname AND lastName LIKE @lname",
+                dt = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where firstName LIKE @fname AND lastName LIKE @lname",
                     ("@fname", names[0]),
                     ("@lname", names[^1])
                     );
             }
             else
             {
-                dt = db.GetDataTable("SELECT TOP 1 * from People Where firstName LIKE @name OR lastName LIKE @name ", ("@name", name));
+                dt = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where firstName LIKE @name OR lastName LIKE @name ", ("@name", name));
             }
 
             if (dt.Rows.Count == 0)
@@ -82,11 +83,8 @@ namespace FamilyTree
         }
         public void Update(Person person)
         {
-            var db = new SQLDatabase
-            {
-                DatabaseName = DatabaseName
-            };
-            db.ExecuteSQL(@"
+
+            SqlDatabase.ExecuteSQL(@"
                 Update People SET
                 FirstName=@FirstName, LastName=@LastName, BirthDate=@BirthDate, DeathDate=@DeathDate, MotherId=@MotherId, FatherId=@FatherId
                 WHERE Id = @id",
@@ -100,11 +98,7 @@ namespace FamilyTree
         }
         public void Delete(Person person)
         {
-            var db = new SQLDatabase
-            {
-                DatabaseName = DatabaseName
-            };
-            db.ExecuteSQL("DELETE FROM People Where Id=@id",
+            SqlDatabase.ExecuteSQL("DELETE FROM People Where Id=@id",
                          ("@Id", person.Id.ToString())
                          );
         }
@@ -115,16 +109,13 @@ namespace FamilyTree
         }
         public List<Person> List(string filter = "", string orderBy = "lastName", int max = 10)
         {
-            var db = new SQLDatabase
-            {
-                DatabaseName = DatabaseName
-            };
+
             var sql = "SELECT";
             if (max > 0) sql += " TOP " + max.ToString();
-            sql += "* From People";
+            sql += "* From Relatives";
             if (filter != "") sql += "WHERE " + filter;
             if (orderBy != "") sql += " ORDER BY " + orderBy;
-            var data = db.GetDataTable(sql);
+            var data = SqlDatabase.GetDataTable(sql);
             var lst = new List<Person>();
             foreach (DataRow row in data.Rows)
             {

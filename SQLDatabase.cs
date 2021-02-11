@@ -11,12 +11,18 @@ namespace FamilyTree
     {
         internal string ConnectionString { get; } = @"Data Source=.\SQLExpress;Integrated Security=true;database={0}";
         internal string DatabaseName { get; set; }
+        internal string StringToConnect { get; set; }
+
+        public SQLDatabase(string databaseName)
+        {
+            DatabaseName = databaseName;
+            StringToConnect = string.Format(ConnectionString, DatabaseName);
+        }
 
         internal DataTable GetDataTable(string sqlString, params (string, string)[] parameters)
         {
             var dt = new DataTable();
-            var connString = string.Format(ConnectionString, DatabaseName);
-            using (var cnn = new SqlConnection(connString))
+            using (var cnn = new SqlConnection(StringToConnect))
             {
                 cnn.Open();
                 using (var command = new SqlCommand(sqlString, cnn))
@@ -34,8 +40,7 @@ namespace FamilyTree
         internal long ExecuteSQL(string sqlString, params (string, string)[] parameters)
         {
             long rowsAffected = 0;
-            var connString = string.Format(ConnectionString, DatabaseName);
-            using (var cnn = new SqlConnection(connString))
+            using (var cnn = new SqlConnection(StringToConnect))
             {
                 cnn.Open();
                 using (var command = new SqlCommand(sqlString, cnn))
@@ -99,12 +104,14 @@ namespace FamilyTree
                 ExecuteSQL("CREATE DATABASE " + name);
                 Console.WriteLine("Database created!");
                 DatabaseName = name;
+                StringToConnect = string.Format(ConnectionString, DatabaseName);
                 //if (OpenNewDatabase) DatabaseName = name;
             }
         }
         internal void DropDatabase(string name)
         {
             DatabaseName = "Master";
+            StringToConnect = string.Format(ConnectionString, DatabaseName);
 
             // Database is being used issue - https://stackoverflow.com/a/20569152/15032536
             ExecuteSQL(" alter database [" + name + "] set single_user with rollback immediate");
