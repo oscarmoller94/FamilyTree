@@ -14,5 +14,9 @@ namespace FamilyTree
         public int MotherId { get; set; }
         public int FatherId { get; set; }
 
+        public override string ToString()
+        {
+            return($"{FirstName} {LastName} {BirthDate} - {DeathDate} {MotherId} {FatherId}\n");
+        }
     }
 }

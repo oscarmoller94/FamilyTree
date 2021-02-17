@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
+using System.Dynamic;
 using System.IO;
 using System.Text;
 
@@ -11,18 +12,19 @@ namespace FamilyTree
     {
         internal string ConnectionString { get; } = @"Data Source=.\SQLExpress;Integrated Security=true;database={0}";
         internal string DatabaseName { get; set; }
-        internal string StringToConnect { get; set; }
 
+        public SQLDatabase() { }
         public SQLDatabase(string databaseName)
         {
             DatabaseName = databaseName;
-            StringToConnect = string.Format(ConnectionString, DatabaseName);
         }
+        
 
         internal DataTable GetDataTable(string sqlString, params (string, string)[] parameters)
         {
+            var connString = string.Format(ConnectionString, DatabaseName);
             var dt = new DataTable();
-            using (var cnn = new SqlConnection(StringToConnect))
+            using (var cnn = new SqlConnection(connString))
             {
                 cnn.Open();
                 using (var command = new SqlCommand(sqlString, cnn))
@@ -40,7 +42,8 @@ namespace FamilyTree
         internal long ExecuteSQL(string sqlString, params (string, string)[] parameters)
         {
             long rowsAffected = 0;
-            using (var cnn = new SqlConnection(StringToConnect))
+            var connString = string.Format(ConnectionString, DatabaseName);
+            using (var cnn = new SqlConnection(connString))
             {
                 cnn.Open();
                 using (var command = new SqlCommand(sqlString, cnn))
@@ -82,8 +85,9 @@ namespace FamilyTree
         }
         internal bool DoesDatabaseExist(string name)
         {
-            var theDB = GetDataTable("SELECT name FROM sys.databases Where name = @name", ("@name", name));
-            return theDB?.Rows.Count > 0;
+            DataTable dt = new DataTable();
+            dt = GetDataTable("SELECT name FROM sys.databases Where name = @name", ("@name", name));
+            return dt?.Rows.Count > 0;
         }
         internal void ImportSQL(string filename)
         {
@@ -104,14 +108,13 @@ namespace FamilyTree
                 ExecuteSQL("CREATE DATABASE " + name);
                 Console.WriteLine("Database created!");
                 DatabaseName = name;
-                StringToConnect = string.Format(ConnectionString, DatabaseName);
                 //if (OpenNewDatabase) DatabaseName = name;
             }
         }
         internal void DropDatabase(string name)
         {
             DatabaseName = "Master";
-            StringToConnect = string.Format(ConnectionString, DatabaseName);
+            var connString = string.Format(ConnectionString, DatabaseName);
 
             // Database is being used issue - https://stackoverflow.com/a/20569152/15032536
             ExecuteSQL(" alter database [" + name + "] set single_user with rollback immediate");

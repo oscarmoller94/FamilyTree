@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
-using System.Text;
 
 namespace FamilyTree
 {
@@ -11,9 +9,20 @@ namespace FamilyTree
         internal SQLDatabase SqlDatabase { get; set; } = new SQLDatabase("Genealogy");
         public void Create(Person person)
         {
-            var sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @MotherId, @FatherId)";
-            (string, string)[] parameters = FillParameters(person);
-            SqlDatabase.ExecuteSQL(sql, parameters);
+            var dt = new DataTable();
+            var sql = "SELECT Id FROM Relatives WHERE FirstName = @firstName AND LastName = @lastName AND BirthDate = @birthDate";
+            dt = SqlDatabase.GetDataTable(sql, ("@firstName", person.FirstName), ("@lastName", person.LastName), ("@birthDate", person.BirthDate));
+            if (dt.Rows.Count > 0)
+            {
+                
+                Console.WriteLine("Person already exists!");
+            }
+            else
+            {
+                sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @MotherId, @FatherId)";
+                (string, string)[] parameters = FillParameters(person);
+                SqlDatabase.ExecuteSQL(sql, parameters);
+            }
             GiveIdToPersonObject(person);
         }
 
@@ -33,16 +42,16 @@ namespace FamilyTree
         public void GiveIdToPersonObject(Person person)
         {
             var dt = new DataTable();
-            dt = SqlDatabase.GetDataTable("SELECT Id FROM Relatives WHERE FirstName = @firstName AND LastName = @lastName AND BirthDate = @birthDate",  
+            dt = SqlDatabase.GetDataTable("SELECT Id FROM Relatives WHERE FirstName = @firstName AND LastName = @lastName AND BirthDate = @birthDate",
                 ("@firstName", person.FirstName), ("@lastName", person.LastName), ("@birthDate", person.BirthDate));
-         
+
             person.Id = (int)dt.Rows[0]["Id"];
         }
 
         public Person Read(int id)
         {
 
-            var row = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where Id LIKE @id", ("@id", id.ToString()));
+            var row = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where Id = @id", ("@id", id.ToString()));
             if (row.Rows.Count == 0)
                 return null;
 
@@ -107,7 +116,7 @@ namespace FamilyTree
             var person = Read(name);
             if (person != null) Delete(person);
         }
-        public List<Person> List(string filter = "", string orderBy = "lastName", int max = 10)
+        public List<Person> List(string filter = "", string orderBy = "Id", int max = 20)
         {
 
             var sql = "SELECT";
@@ -123,6 +132,36 @@ namespace FamilyTree
             }
             return lst;
         }
+        public void GetParents(Person person, out Person mother, out Person father)
+        {
 
+            mother = Read(person.MotherId);
+            father = Read(person.FatherId);
+        }
+        public void SetParents(Person child, Person mother, Person father)
+        {
+            child.MotherId = mother.Id;
+            child.FatherId = father.Id;
+
+            var sql = @"UPDATE Relatives SET motherId = @motherId, fatherId = @fatherId WHERE Id = @Id";
+            SqlDatabase.ExecuteSQL(sql, ("@motherId", mother.Id.ToString()), ("@fatherId", father.Id.ToString()), ("@Id", child.Id.ToString()));
+        }
+        public List<Person> GetSiblings(Person person)
+        {
+            var listOfSiblings = new List<Person>();
+            DataTable dt = new DataTable();
+            var sql = "SELECT * FROM Relatives WHERE Id != @Id AND MotherId = @motherId AND FatherId = @fatherId";
+            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()), ("@motherId", person.MotherId.ToString()), ("@fatherId", person.FatherId.ToString()));
+            if (dt.Rows.Count > 0)
+            {
+                foreach (DataRow row in dt.Rows)
+                {
+                    listOfSiblings.Add(GetPersonObject(row));
+                }
+            }
+            return listOfSiblings;
+
+
+        }
     }
 }
