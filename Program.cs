@@ -77,7 +77,8 @@ namespace FamilyTree
                     PrintFullFamilyTree();
                     break;
                 case 2:
-                    SelectSpecificPerson();
+                    var listOfRelatives = crud.List();
+                    SelectSpecificPerson(listOfRelatives);
                     break;
                 case 3:
                     SearchMenu();
@@ -89,23 +90,91 @@ namespace FamilyTree
 
         private static void SearchMenu()
         {
-            Console.Clear();
-            Console.WriteLine("Select a category to search:");
-            Console.WriteLine("[1]. First name");
-            Console.WriteLine("[2]. Last name");
-            Console.WriteLine("[3]. Birth date");
-            Console.WriteLine("[4]. Death date");
-            Console.WriteLine("[5]. Mother Id");
-            Console.WriteLine("[6]. Father Id");
-        }
-
-        private static void SelectSpecificPerson()
-        {
-            var listOfRelatives = crud.List();
             int choice;
             do
             {
-                Console.Clear();
+                Console.WriteLine("Select a category to search:");
+                Console.WriteLine("[1]. First name");
+                Console.WriteLine("[2]. Last name");
+                Console.WriteLine("[3]. Birth year");
+                Console.WriteLine("[4]. Death year");
+                Console.WriteLine("[5]. Main Menu");
+                int.TryParse(Console.ReadLine(), out choice);
+                if (choice < 1)
+                {
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Chosen number to low! try again");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+                else if (choice > 6)
+                {
+                    Console.Clear();
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.WriteLine("Chosen number to high! try again.");
+                    Console.ForegroundColor = ConsoleColor.White;
+                }
+            } while (choice < 1 || choice > 6);
+            SearchMenuChoice(choice);
+        }
+
+        private static void SearchMenuChoice(int choice)
+        {
+            switch (choice)
+            {
+                case 1:
+                    ExequteSearch("FirstName");
+                    break;
+                case 2:
+                    ExequteSearch("LastName");
+                    break;
+                case 3:
+                    ExequteSearch("BirthDate");
+                    break;
+                case 4:
+                    ExequteSearch("DeathYear");
+                    break;
+                case 5:
+                    MainMenu();
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        private static void ExequteSearch(string filter)
+        {
+            
+            Console.Write("Enter search: ");
+            string userSearch = Console.ReadLine();
+            Console.Clear();
+            var searchResult = crud.Search(filter, userSearch);
+            if(searchResult.Count == 1)
+            {
+                
+                foreach (var person in searchResult)
+                {
+                    Console.WriteLine($"Your search result: {person}\n");
+                    SpecificPersonMenu(person);
+                }
+            }
+            else if(searchResult.Count > 1)
+            {
+                Console.WriteLine("Search results:\n");
+                SelectSpecificPerson(searchResult);
+            }
+            else
+            {
+                Console.WriteLine("No matches found!");
+                SearchMenu();
+            }
+        }
+
+        private static void SelectSpecificPerson(List<Person>listOfRelatives)
+        {
+            int choice;
+            do
+            {
                 Console.WriteLine("Select which person you want to find out more about");
                 int counter = 1;
                 foreach (var person in listOfRelatives)
@@ -193,7 +262,8 @@ namespace FamilyTree
                 case 4:
                     crud.Delete(person);
                     Console.WriteLine("Person deleted successfully");
-                    SelectSpecificPerson();
+                    var listOfRelatives = crud.List();
+                    SelectSpecificPerson(listOfRelatives);
                     break;
                 case 5:
                     FindParents(person);
@@ -208,7 +278,8 @@ namespace FamilyTree
                     FindSiblings(person);
                     break;
                 case 9:
-                    SelectSpecificPerson();
+                    listOfRelatives = crud.List();
+                    SelectSpecificPerson(listOfRelatives);
                     break;
                 case 10:
                     MainMenu();

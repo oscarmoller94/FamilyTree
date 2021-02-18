@@ -186,6 +186,21 @@ namespace FamilyTree
             var father = Read(person.FatherId);
             grandMother = Read(mother.MotherId);
             grandFather = Read(father.FatherId);
+        }
+        public List<Person> Search(string filter, string searchInput)
+        {
+            DataTable dt = new DataTable();
+            var searchResult = new List<Person>();
+            var sql = $"SELECT * FROM Relatives WHERE {filter} LIKE @searchInput";
+            dt = SqlDatabase.GetDataTable(sql,("@searchInput", $"%{searchInput}%"));
+            if(dt.Rows.Count > 0)
+            {
+                foreach (DataRow row in dt.Rows)
+                {
+                    searchResult.Add(GetPersonObject(row));
+                }
+            }
+            return searchResult;
 
         }
     }
