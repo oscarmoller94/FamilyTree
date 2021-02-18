@@ -16,7 +16,7 @@ namespace FamilyTree
 
         public override string ToString()
         {
-            return($"{FirstName} {LastName} {BirthDate} - {DeathDate} {MotherId} {FatherId}\n");
+            return($"|Id:{Id}| |{FirstName} {LastName}| |{BirthDate} - {DeathDate}| |Mother id: {MotherId}| |Father id : {FatherId}|\n");
         }
     }
 }

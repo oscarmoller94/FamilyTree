@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.Design;
 using System.Data;
 
 namespace FamilyTree
@@ -12,18 +13,19 @@ namespace FamilyTree
             var dt = new DataTable();
             var sql = "SELECT Id FROM Relatives WHERE FirstName = @firstName AND LastName = @lastName AND BirthDate = @birthDate";
             dt = SqlDatabase.GetDataTable(sql, ("@firstName", person.FirstName), ("@lastName", person.LastName), ("@birthDate", person.BirthDate));
-            if (dt.Rows.Count > 0)
-            {
-                
-                Console.WriteLine("Person already exists!");
-            }
-            else
+            if (dt.Rows.Count == 0)
             {
                 sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @MotherId, @FatherId)";
                 (string, string)[] parameters = FillParameters(person);
                 SqlDatabase.ExecuteSQL(sql, parameters);
+                //GiveIdToPersonObject(person);
             }
-            GiveIdToPersonObject(person);
+            else
+            {
+                Console.WriteLine("Person already exists!");
+                //GiveIdToPersonObject(person);
+            }
+            
         }
 
         private (string, string)[] FillParameters(Person person)
@@ -87,27 +89,29 @@ namespace FamilyTree
                 BirthDate = row["birthDate"].ToString(),
                 DeathDate = row["deathDate"].ToString(),
                 MotherId = (int)row["motherId"],
-                FatherId = (int)row["fatherId"]
+                FatherId = (int)row["fatherId"],
+                Id = (int)row["Id"]
             };
         }
         public void Update(Person person)
         {
 
             SqlDatabase.ExecuteSQL(@"
-                Update People SET
-                FirstName=@FirstName, LastName=@LastName, BirthDate=@BirthDate, DeathDate=@DeathDate, MotherId=@MotherId, FatherId=@FatherId
-                WHERE Id = @id",
-                ("@FirstName", person.FirstName),
-                ("@LastName", person.LastName),
-                ("@BirthDate", person.BirthDate),
-                ("@DeathDate", person.DeathDate),
-                ("@MotherId", person.MotherId.ToString()),
-                ("@FatherId", person.FatherId.ToString())
-                );
+                Update dbo.Relatives SET
+                FirstName = @FirstName, LastName = @LastName, BirthDate = @BirthDate, DeathDate = @DeathDate, MotherId = @MotherId, FatherId = @FatherId
+                WHERE Id = @Id",
+           ("@FirstName", person.FirstName),
+           ("@LastName", person.LastName),
+           ("@BirthDate", person.BirthDate),
+           ("@DeathDate", person.DeathDate),
+           ("@MotherId", person.MotherId.ToString()),
+           ("@FatherId", person.FatherId.ToString()),
+           ("@Id", person.Id.ToString())
+           ); 
         }
         public void Delete(Person person)
         {
-            SqlDatabase.ExecuteSQL("DELETE FROM People Where Id=@id",
+            SqlDatabase.ExecuteSQL("DELETE FROM Relatives Where Id=@id",
                          ("@Id", person.Id.ToString())
                          );
         }
@@ -143,8 +147,7 @@ namespace FamilyTree
             child.MotherId = mother.Id;
             child.FatherId = father.Id;
 
-            var sql = @"UPDATE Relatives SET motherId = @motherId, fatherId = @fatherId WHERE Id = @Id";
-            SqlDatabase.ExecuteSQL(sql, ("@motherId", mother.Id.ToString()), ("@fatherId", father.Id.ToString()), ("@Id", child.Id.ToString()));
+            Update(child);
         }
         public List<Person> GetSiblings(Person person)
         {
@@ -160,7 +163,29 @@ namespace FamilyTree
                 }
             }
             return listOfSiblings;
+        }
+        public List<Person> GetChildren(Person person)
+        {
+            var listOfChildrens = new List<Person>();
+            DataTable dt = new DataTable();
+            var sql = "SELECT * FROM Relatives WHERE MotherId = @Id OR FatherId = @Id";
+            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()));
+            if (dt.Rows.Count > 0)
+            {
+                foreach (DataRow row in dt.Rows)
+                {
+                    listOfChildrens.Add(GetPersonObject(row));
+                }
+            }
+            return listOfChildrens;
 
+        }
+        public void GetGrandParents(Person person, out Person grandMother, out Person grandFather)
+        {
+            var mother = Read(person.MotherId);
+            var father = Read(person.FatherId);
+            grandMother = Read(mother.MotherId);
+            grandFather = Read(father.FatherId);
 
         }
     }
