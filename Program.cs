@@ -87,6 +87,7 @@ namespace FamilyTree
                     CreateNewPerson();
                     break;
                 case 5:
+                    Environment.Exit(1);
                     break;
                 default:
                     break;
@@ -129,17 +130,17 @@ namespace FamilyTree
             }
             Console.Clear();
             var person = new List<Person>();
-            person.Add(new Person { FirstName = firstName, LastName = lastName, BirthDate = birthDate, DeathDate = deathDate, BirthCity = birthCity, DeathCity = deathCity, MotherId = motherId, FatherId = fatherId});
+            person.Add(new Person { FirstName = firstName, LastName = lastName, BirthDate = birthDate, DeathDate = deathDate, BirthCity = birthCity, DeathCity = deathCity, MotherId = motherId, FatherId = fatherId });
             foreach (var personObject in person)
             {
                 crud.Create(personObject);
                 crud.GiveIdToPersonObject(personObject);
                 Console.WriteLine($"{personObject.FirstName} {personObject.LastName} Created succesfully!");
             }
-            
-        
-            
-            
+
+
+
+
 
 
         }
@@ -191,7 +192,7 @@ namespace FamilyTree
                     ExequteSearch("BirthDate");
                     break;
                 case 4:
-                    ExequteSearch("DeathYear");
+                    ExequteSearch("DeathDate");
                     break;
                 case 5:
                     ExequteSearch("BirthCity");
@@ -242,6 +243,7 @@ namespace FamilyTree
         /// </summary>
         private static void SelectSpecificPerson(List<Person> listOfRelatives)
         {
+            int mainMenu;
             int choice;
             int counter = 1;
             do
@@ -251,14 +253,11 @@ namespace FamilyTree
                     Console.WriteLine($"[{counter}] {person.FirstName} {person.LastName}");
                     counter++;
                 }
-                Console.WriteLine($"\n[{counter}] Return to Main menu");
+                mainMenu = counter;
+                Console.WriteLine($"\n[{mainMenu}] Return to Main menu");
                 Console.Write("\nSelect the number next to the person you want to find out more about: ");
                 int.TryParse(Console.ReadLine(), out choice);
                 Console.Clear();
-                if (choice == listOfRelatives.Count + 1)
-                {
-                    MainMenu();
-                }
                 if (choice < 1)
                 {
                     PrintStringRed("Chosen number to low! try again");
@@ -270,7 +269,15 @@ namespace FamilyTree
                 }
 
             } while (choice < 1 || choice > listOfRelatives.Count + 1);
-            SpecificPersonMenu(listOfRelatives[choice - 1]);
+
+            if (choice == mainMenu)
+            {
+                MainMenu();
+            }
+            else
+            {
+                SpecificPersonMenu(listOfRelatives[choice - 1]);
+            }
 
 
         }
@@ -622,7 +629,7 @@ namespace FamilyTree
             {
                 age--;
             }
-            string output = person.DeathDate == "Still alive" ? $"{person.FirstName} is {age} years old." : $"{person.FirstName} would have been {age} years old";
+            string output = person.DeathDate != "Still alive" ? $"{person.FirstName} would have been {age} years old" : $"{person.FirstName} is {age} years old.";
             Console.Clear();
             Console.WriteLine($"{output}\n");
             SpecificPersonMenu(person);
