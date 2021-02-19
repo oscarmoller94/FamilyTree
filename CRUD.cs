@@ -8,6 +8,9 @@ namespace FamilyTree
     class CRUD
     {
         internal SQLDatabase SqlDatabase { get; set; } = new SQLDatabase("Genealogy");
+        /// <summary>
+        /// tar emot ett person objekt och skickar in det till databasen. Ifall personen redan finns i databasen, läggs personen inte in igen.
+        /// </summary>
         public void Create(Person person)
         {
             var dt = new DataTable();
@@ -19,15 +22,18 @@ namespace FamilyTree
                     "VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @BirthCity, @DeathCity, @MotherId, @FatherId)";
                 (string, string)[] parameters = FillParameters(person);
                 SqlDatabase.ExecuteSQL(sql, parameters);
-                //GiveIdToPersonObject(person);
+                
             }
             else
             {
                 Console.WriteLine("Person already exists!");
-                //GiveIdToPersonObject(person);
+               
             }
             
         }
+        /// <summary>
+        /// en metod som fyller på alla parametrar i en tuple och returnerar denne.
+        /// </summary>
 
         private (string, string)[] FillParameters(Person person)
         {
@@ -43,7 +49,9 @@ namespace FamilyTree
             ("@FatherId", person.FatherId.ToString())
             };
         }
-
+        /// <summary>
+        /// metod som tar emot ett person objekt och med hjälp av en datatable hämtar Idet från databasen och ger det till objektet.
+        /// </summary>
         public void GiveIdToPersonObject(Person person)
         {
             var dt = new DataTable();
@@ -52,6 +60,9 @@ namespace FamilyTree
 
             person.Id = (int)dt.Rows[0]["Id"];
         }
+        /// <summary>
+        /// metod som tar emot ett id och hämtar person baserat på id. Ifall personen ej hittas returneras null.
+        /// </summary>
 
         public Person Read(int id)
         {
@@ -62,6 +73,9 @@ namespace FamilyTree
 
             return GetPersonObject(row.Rows[0]);
         }
+        /// <summary>
+        /// metod som tar emot ett namn och hämtar person baserat på namn. Funkar att skriva förnamn och för-efternamn
+        /// </summary>
         public Person Read(string name)
         {
             DataTable dt;
@@ -83,6 +97,10 @@ namespace FamilyTree
 
             return GetPersonObject(dt.Rows[0]);
         }
+        /// <summary>
+        /// metod som för över informationen från en datarow till ett person objekt.
+        /// </summary>
+
         private static Person GetPersonObject(DataRow row)
         {
             return new Person
@@ -91,39 +109,57 @@ namespace FamilyTree
                 LastName = row["lastName"].ToString(),
                 BirthDate = row["birthDate"].ToString(),
                 DeathDate = row["deathDate"].ToString(),
+                BirthCity = row["birthCity"].ToString(),
+                DeathCity = row["deathCity"].ToString(),
                 MotherId = (int)row["motherId"],
                 FatherId = (int)row["fatherId"],
                 Id = (int)row["Id"]
             };
         }
+        /// <summary>
+        /// Uppdaterar en person med alla dess properties
+        /// </summary>
+        /// <param name="person"></param>
         public void Update(Person person)
         {
 
             SqlDatabase.ExecuteSQL(@"
                 Update dbo.Relatives SET
-                FirstName = @FirstName, LastName = @LastName, BirthDate = @BirthDate, DeathDate = @DeathDate, MotherId = @MotherId, FatherId = @FatherId
+                FirstName = @FirstName, LastName = @LastName, BirthDate = @BirthDate, DeathDate = @DeathDate, BirthCity = @BirthCity, DeathCity = @DeathCity, MotherId = @MotherId, FatherId = @FatherId
                 WHERE Id = @Id",
            ("@FirstName", person.FirstName),
            ("@LastName", person.LastName),
            ("@BirthDate", person.BirthDate),
            ("@DeathDate", person.DeathDate),
+           ("@BirthCity", person.BirthCity),
+           ("@DeathCity", person.DeathCity),
            ("@MotherId", person.MotherId.ToString()),
            ("@FatherId", person.FatherId.ToString()),
            ("@Id", person.Id.ToString())
            ); 
         }
+        /// <summary>
+        /// tar bort en person via ett person objekt
+        /// </summary>
         public void Delete(Person person)
         {
             SqlDatabase.ExecuteSQL("DELETE FROM Relatives Where Id=@id",
                          ("@Id", person.Id.ToString())
                          );
         }
+        /// <summary>
+        /// tar bort en person via en sträng namn
+        /// </summary>
         public void Delete(string name)
         {
             var person = Read(name);
             if (person != null) Delete(person);
         }
-        public List<Person> List(string filter = "", string orderBy = "Id", int max = 20)
+        /// <summary>
+        /// skapar en lista av objekt och för över skapade personen från Databasen in till listan.
+        /// </summary>
+
+        public List<Person> List(string filter = "", string orderBy = "Id", int max = 30)
         {
 
             var sql = "SELECT";
@@ -139,12 +175,20 @@ namespace FamilyTree
             }
             return lst;
         }
+        /// <summary>
+        /// hämtar en persons föräldrar
+        /// </summary>
+
         public void GetParents(Person person, out Person mother, out Person father)
         {
 
             mother = Read(person.MotherId);
             father = Read(person.FatherId);
         }
+        /// <summary>
+        /// sätter en persons föräldar
+        /// </summary>
+
         public void SetParents(Person child, Person mother, Person father)
         {
             child.MotherId = mother.Id;
@@ -152,6 +196,10 @@ namespace FamilyTree
 
             Update(child);
         }
+        /// <summary>
+        /// hämtar en persons syskon
+        /// </summary>
+
         public List<Person> GetSiblings(Person person)
         {
             var listOfSiblings = new List<Person>();
@@ -167,6 +215,10 @@ namespace FamilyTree
             }
             return listOfSiblings;
         }
+        /// <summary>
+        /// hämtar en persons barn
+        /// </summary>
+
         public List<Person> GetChildren(Person person)
         {
             var listOfChildrens = new List<Person>();
@@ -183,6 +235,9 @@ namespace FamilyTree
             return listOfChildrens;
 
         }
+        /// <summary>
+        /// hämtar en persons farföräldrar
+        /// </summary>
         public void GetGrandParents(Person person, out Person grandMother, out Person grandFather)
         {
             var mother = Read(person.MotherId);
@@ -190,6 +245,10 @@ namespace FamilyTree
             grandMother = Read(mother.MotherId);
             grandFather = Read(father.FatherId);
         }
+        /// <summary>
+        /// metod som söker på det som användaren skriver in
+        /// </summary>
+
         public List<Person> Search(string filter, string searchInput)
         {
             DataTable dt = new DataTable();

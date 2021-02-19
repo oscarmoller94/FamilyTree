@@ -19,6 +19,9 @@ namespace FamilyTree
             DatabaseName = databaseName;
         }
         
+        /// <summary>
+        /// hämtar en datatabell från databasen
+        /// </summary>
 
         internal DataTable GetDataTable(string sqlString, params (string, string)[] parameters)
         {
@@ -39,6 +42,10 @@ namespace FamilyTree
             }
             return dt;
         }
+        /// <summary>
+        /// Execute Sql code (without returning table)
+        /// </summary>
+
         internal long ExecuteSQL(string sqlString, params (string, string)[] parameters)
         {
             long rowsAffected = 0;
@@ -55,7 +62,9 @@ namespace FamilyTree
             }
             return rowsAffected;
         }
-
+        /// <summary>
+        ///metod för att lägga till parametrar till ett sql command.
+        /// </summary>
         private static void SetParameters((string, string)[] parameters, SqlCommand command)
         {
             foreach (var item in parameters)
@@ -63,6 +72,10 @@ namespace FamilyTree
                 command.Parameters.AddWithValue(item.Item1, item.Item2);
             }
         }
+        /// <summary>
+        /// hämtar en lista på alla filer användna av databasen
+        /// </summary>
+
         internal List<string> GetDatabaseFiles()
         {
             var list = new List<string>();
@@ -73,6 +86,9 @@ namespace FamilyTree
             }
             return list;
         }
+        /// <summary>
+        /// hämtar en lista med alla tillgängliga databaser på servern
+        /// </summary>
         internal List<string> GetDatabases()
         {
             var list = new List<string>();
@@ -83,12 +99,19 @@ namespace FamilyTree
             }
             return list;
         }
+        /// <summary>
+        /// kollar ifall databasen existerar
+        /// </summary>
+
         internal bool DoesDatabaseExist(string name)
         {
             DataTable dt = new DataTable();
             dt = GetDataTable("SELECT name FROM sys.databases Where name = @name", ("@name", name));
             return dt?.Rows.Count > 0;
         }
+        /// <summary>
+        /// importerar en sql fil och exekverar dess innehåll
+        /// </summary>
         internal void ImportSQL(string filename)
         {
             if (File.Exists(filename))
@@ -97,7 +120,11 @@ namespace FamilyTree
                 ExecuteSQL(sql);
             }
         }
-        internal void CreateDatabase(string name /*bool OpenNewDatabase = false*/)
+        /// <summary>
+        /// skapar en databas om inte det redan finns en databas med samma namn
+        /// </summary>
+
+        internal void CreateDatabase(string name)
         {
             if (DoesDatabaseExist(name))
             {
@@ -108,9 +135,12 @@ namespace FamilyTree
                 ExecuteSQL("CREATE DATABASE " + name);
                 Console.WriteLine("Database created!");
                 DatabaseName = name;
-                //if (OpenNewDatabase) DatabaseName = name;
             }
         }
+        /// <summary>
+        /// tar bort en databas
+        /// </summary>
+
         internal void DropDatabase(string name)
         {
             DatabaseName = "Master";
@@ -121,22 +151,41 @@ namespace FamilyTree
 
             ExecuteSQL("DROP DATABASE " + name);
         }
+        /// <summary>
+        /// tar bort en tabell
+        /// </summary>
         internal void DropTable(string name)
         {
             ExecuteSQL($"DROP TABLE {name};");
         }
+        /// <summary>
+        /// ändrar en tabell
+        /// </summary>
+
         internal void AlterTable(string name, string fields)
         {
             ExecuteSQL($"ALTER TABLE {name} {fields};");
         }
+        /// <summary>
+        /// ändrar en tabell och lägger till fält
+        /// </summary>
+
         internal void AlterTableAdd(string name, string fields)
         {
             ExecuteSQL($"ALTER TABLE {name} ADD {fields};");
         }
+        /// <summary>
+        /// ändrar en tabell och tar bort fält
+        /// </summary>
+
         internal void AlterTableDrop(string name, string field)
         {
             ExecuteSQL($"ALTER TABLE {name} DROP COLUMN {field};");
         }
+        /// <summary>
+        /// skapar en tabell om den inte finns redan
+        /// </summary>
+
         internal void CreateTable(string name, string fields)
         {
             if (DoesTableExists(name))
@@ -149,6 +198,10 @@ namespace FamilyTree
                 Console.WriteLine("Table created!");
             }
         }
+        /// <summary>
+        /// kollar om en tabell redan finns
+        /// </summary>
+
         internal bool DoesTableExists(string name)
         {
             var table = GetDataTable("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @name", ("@name", name));
