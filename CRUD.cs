@@ -15,7 +15,8 @@ namespace FamilyTree
             dt = SqlDatabase.GetDataTable(sql, ("@firstName", person.FirstName), ("@lastName", person.LastName), ("@birthDate", person.BirthDate));
             if (dt.Rows.Count == 0)
             {
-                sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, motherId, fatherId) VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @MotherId, @FatherId)";
+                sql = "INSERT INTO Relatives (firstName, lastName, birthDate, deathDate, birthCity, deathCity, motherId, fatherId) " +
+                    "VALUES(@FirstName, @LastName, @BirthDate, @DeathDate, @BirthCity, @DeathCity, @MotherId, @FatherId)";
                 (string, string)[] parameters = FillParameters(person);
                 SqlDatabase.ExecuteSQL(sql, parameters);
                 //GiveIdToPersonObject(person);
@@ -36,6 +37,8 @@ namespace FamilyTree
             ("@LastName", person.LastName),
             ("@BirthDate", person.BirthDate),
             ("@DeathDate", person.DeathDate),
+            ("@BirthCity", person.BirthCity),
+            ("@DeathCity", person.DeathCity),
             ("@MotherId", person.MotherId.ToString()),
             ("@FatherId", person.FatherId.ToString())
             };
