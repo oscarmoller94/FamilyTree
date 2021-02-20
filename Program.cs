@@ -128,15 +128,14 @@ namespace FamilyTree
                 PrintStringRed("person with that Id doesnt exsists in the database (Father id will be set to 0)");
                 fatherId = 0;
             }
-            Console.Clear();
             var person = new List<Person>();
             person.Add(new Person { FirstName = firstName, LastName = lastName, BirthDate = birthDate, DeathDate = deathDate, BirthCity = birthCity, DeathCity = deathCity, MotherId = motherId, FatherId = fatherId });
             foreach (var personObject in person)
             {
                 crud.Create(personObject);
                 crud.GiveIdToPersonObject(personObject);
-                Console.WriteLine($"{personObject.FirstName} {personObject.LastName} Created succesfully!");
             }
+            MainMenu();
 
 
 
