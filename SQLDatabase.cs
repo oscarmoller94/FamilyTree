@@ -2,23 +2,24 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.SqlClient;
-using System.Dynamic;
 using System.IO;
-using System.Text;
 
 namespace FamilyTree
 {
-    class SQLDatabase
+    internal class SQLDatabase
     {
         internal string ConnectionString { get; } = @"Data Source=.\SQLExpress;Integrated Security=true;database={0}";
         internal string DatabaseName { get; set; }
 
-        public SQLDatabase() { }
+        public SQLDatabase()
+        {
+        }
+
         public SQLDatabase(string databaseName)
         {
             DatabaseName = databaseName;
         }
-        
+
         /// <summary>
         /// hämtar en datatabell från databasen
         /// </summary>
@@ -42,6 +43,7 @@ namespace FamilyTree
             }
             return dt;
         }
+
         /// <summary>
         /// Execute Sql code (without returning table)
         /// </summary>
@@ -62,6 +64,7 @@ namespace FamilyTree
             }
             return rowsAffected;
         }
+
         /// <summary>
         ///metod för att lägga till parametrar till ett sql command.
         /// </summary>
@@ -72,6 +75,7 @@ namespace FamilyTree
                 command.Parameters.AddWithValue(item.Item1, item.Item2);
             }
         }
+
         /// <summary>
         /// hämtar en lista på alla filer användna av databasen
         /// </summary>
@@ -86,6 +90,7 @@ namespace FamilyTree
             }
             return list;
         }
+
         /// <summary>
         /// hämtar en lista med alla tillgängliga databaser på servern
         /// </summary>
@@ -99,6 +104,7 @@ namespace FamilyTree
             }
             return list;
         }
+
         /// <summary>
         /// kollar ifall databasen existerar
         /// </summary>
@@ -109,6 +115,7 @@ namespace FamilyTree
             dt = GetDataTable("SELECT name FROM sys.databases Where name = @name", ("@name", name));
             return dt?.Rows.Count > 0;
         }
+
         /// <summary>
         /// importerar en sql fil och exekverar dess innehåll
         /// </summary>
@@ -120,6 +127,7 @@ namespace FamilyTree
                 ExecuteSQL(sql);
             }
         }
+
         /// <summary>
         /// skapar en databas om inte det redan finns en databas med samma namn
         /// </summary>
@@ -137,6 +145,7 @@ namespace FamilyTree
                 DatabaseName = name;
             }
         }
+
         /// <summary>
         /// tar bort en databas
         /// </summary>
@@ -151,6 +160,7 @@ namespace FamilyTree
 
             ExecuteSQL("DROP DATABASE " + name);
         }
+
         /// <summary>
         /// tar bort en tabell
         /// </summary>
@@ -158,6 +168,7 @@ namespace FamilyTree
         {
             ExecuteSQL($"DROP TABLE {name};");
         }
+
         /// <summary>
         /// ändrar en tabell
         /// </summary>
@@ -166,6 +177,7 @@ namespace FamilyTree
         {
             ExecuteSQL($"ALTER TABLE {name} {fields};");
         }
+
         /// <summary>
         /// ändrar en tabell och lägger till fält
         /// </summary>
@@ -174,6 +186,7 @@ namespace FamilyTree
         {
             ExecuteSQL($"ALTER TABLE {name} ADD {fields};");
         }
+
         /// <summary>
         /// ändrar en tabell och tar bort fält
         /// </summary>
@@ -182,6 +195,7 @@ namespace FamilyTree
         {
             ExecuteSQL($"ALTER TABLE {name} DROP COLUMN {field};");
         }
+
         /// <summary>
         /// skapar en tabell om den inte finns redan
         /// </summary>
@@ -198,6 +212,7 @@ namespace FamilyTree
                 Console.WriteLine("Table created!");
             }
         }
+
         /// <summary>
         /// kollar om en tabell redan finns
         /// </summary>
@@ -207,7 +222,5 @@ namespace FamilyTree
             var table = GetDataTable("SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @name", ("@name", name));
             return table?.Rows.Count > 0;
         }
-
-
     }
 }

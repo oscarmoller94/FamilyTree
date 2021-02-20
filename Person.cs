@@ -1,10 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace FamilyTree
+﻿namespace FamilyTree
 {
-    class Person
+    internal class Person
     {
         public int Id { get; set; }
         public string FirstName { get; set; }
@@ -18,7 +14,7 @@ namespace FamilyTree
 
         public override string ToString()
         {
-            return($"|Id:{Id}| |{FirstName} {LastName}| |{BirthDate} - {DeathDate}| |Born: {BirthCity}| |Died: {DeathCity}| |M.id: {MotherId}| |F.id : {FatherId}|\n");
+            return ($"|Id:{Id}| |{FirstName} {LastName}| |{BirthDate} - {DeathDate}| |Born: {BirthCity}| |Died: {DeathCity}| |M.id: {MotherId}| |F.id : {FatherId}|\n");
         }
     }
 }
