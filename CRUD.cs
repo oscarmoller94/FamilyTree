@@ -30,22 +30,80 @@ namespace FamilyTree
         }
 
         /// <summary>
-        /// en metod som fyller på alla parametrar i en tuple och returnerar denne.
+        /// tar bort en person via ett person objekt
         /// </summary>
-
-        private (string, string)[] FillParameters(Person person)
+        public void Delete(Person person)
         {
-            return new (string, string)[]
+            SqlDatabase.ExecuteSQL("DELETE FROM Relatives Where Id=@id",
+                         ("@Id", person.Id.ToString())
+                         );
+        }
+
+        /// <summary>
+        /// tar bort en person via en sträng namn
+        /// </summary>
+        public void Delete(string name)
+        {
+            var person = Read(name);
+            if (person != null) Delete(person);
+        }
+
+        /// <summary>
+        /// hämtar en persons barn
+        /// </summary>
+        public List<Person> GetChildren(Person person)
+        {
+            var listOfChildrens = new List<Person>();
+            DataTable dt = new DataTable();
+            var sql = "SELECT * FROM Relatives WHERE MotherId = @Id OR FatherId = @Id";
+            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()));
+            if (dt.Rows.Count > 0)
             {
-            ("@FirstName", person.FirstName),
-            ("@LastName", person.LastName),
-            ("@BirthDate", person.BirthDate),
-            ("@DeathDate", person.DeathDate),
-            ("@BirthCity", person.BirthCity),
-            ("@DeathCity", person.DeathCity),
-            ("@MotherId", person.MotherId.ToString()),
-            ("@FatherId", person.FatherId.ToString())
-            };
+                foreach (DataRow row in dt.Rows)
+                {
+                    listOfChildrens.Add(GetPersonObject(row));
+                }
+            }
+            return listOfChildrens;
+        }
+
+        /// <summary>
+        /// hämtar en persons farföräldrar
+        /// </summary>
+        public void GetGrandParents(Person person, out Person grandMother, out Person grandFather)
+        {
+            var mother = Read(person.MotherId);
+            var father = Read(person.FatherId);
+            grandMother = Read(mother.MotherId);
+            grandFather = Read(father.FatherId);
+        }
+
+        /// <summary>
+        /// sätter en persons föräldar
+        /// </summary>
+        public void GetParents(Person person, out Person mother, out Person father)
+        {
+            mother = Read(person.MotherId);
+            father = Read(person.FatherId);
+        }
+
+        /// <summary>
+        /// hämtar en persons syskon
+        /// </summary>
+        public List<Person> GetSiblings(Person person)
+        {
+            var listOfSiblings = new List<Person>();
+            DataTable dt = new DataTable();
+            var sql = "SELECT * FROM Relatives WHERE Id != @Id AND MotherId = @motherId AND FatherId = @fatherId";
+            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()), ("@motherId", person.MotherId.ToString()), ("@fatherId", person.FatherId.ToString()));
+            if (dt.Rows.Count > 0)
+            {
+                foreach (DataRow row in dt.Rows)
+                {
+                    listOfSiblings.Add(GetPersonObject(row));
+                }
+            }
+            return listOfSiblings;
         }
 
         /// <summary>
@@ -61,9 +119,27 @@ namespace FamilyTree
         }
 
         /// <summary>
+        /// skapar en lista av person och för över de skapade personerna från Databasen in till listan.
+        /// </summary>
+        public List<Person> List(string filter = "", string orderBy = "Id", int max = 30)
+        {
+            var sql = "SELECT";
+            if (max > 0) sql += " TOP " + max.ToString();
+            sql += "* From Relatives";
+            if (filter != "") sql += "WHERE " + filter;
+            if (orderBy != "") sql += " ORDER BY " + orderBy;
+            var data = SqlDatabase.GetDataTable(sql);
+            var lst = new List<Person>();
+            foreach (DataRow row in data.Rows)
+            {
+                lst.Add(GetPersonObject(row));
+            }
+            return lst;
+        }
+
+        /// <summary>
         /// metod som tar emot ett id och hämtar person baserat på id. Ifall personen ej hittas returneras null.
         /// </summary>
-
         public Person Read(int id)
         {
             var row = SqlDatabase.GetDataTable("SELECT TOP 1 * from Relatives Where Id = @id", ("@id", id.ToString()));
@@ -99,23 +175,30 @@ namespace FamilyTree
         }
 
         /// <summary>
-        /// metod som för över informationen från en datarow till ett person objekt.
+        /// metod som söker på det som användaren skriver in
         /// </summary>
-
-        private static Person GetPersonObject(DataRow row)
+        public List<Person> Search(string filter, string searchInput)
         {
-            return new Person
+            DataTable dt = new DataTable();
+            var searchResult = new List<Person>();
+            var sql = $"SELECT * FROM Relatives WHERE {filter} LIKE @searchInput";
+            dt = SqlDatabase.GetDataTable(sql, ("@searchInput", $"%{searchInput}%"));
+            if (dt.Rows.Count > 0)
             {
-                FirstName = row["firstName"].ToString(),
-                LastName = row["lastName"].ToString(),
-                BirthDate = row["birthDate"].ToString(),
-                DeathDate = row["deathDate"].ToString(),
-                BirthCity = row["birthCity"].ToString(),
-                DeathCity = row["deathCity"].ToString(),
-                MotherId = (int)row["motherId"],
-                FatherId = (int)row["fatherId"],
-                Id = (int)row["Id"]
-            };
+                foreach (DataRow row in dt.Rows)
+                {
+                    searchResult.Add(GetPersonObject(row));
+                }
+            }
+            return searchResult;
+        }
+
+        public void SetParents(Person child, Person mother, Person father)
+        {
+            child.MotherId = mother.Id;
+            child.FatherId = father.Id;
+
+            Update(child);
         }
 
         /// <summary>
@@ -141,135 +224,40 @@ namespace FamilyTree
         }
 
         /// <summary>
-        /// tar bort en person via ett person objekt
+        /// metod som för över informationen från en datarow till ett person objekt.
         /// </summary>
-        public void Delete(Person person)
+        private static Person GetPersonObject(DataRow row)
         {
-            SqlDatabase.ExecuteSQL("DELETE FROM Relatives Where Id=@id",
-                         ("@Id", person.Id.ToString())
-                         );
-        }
-
-        /// <summary>
-        /// tar bort en person via en sträng namn
-        /// </summary>
-        public void Delete(string name)
-        {
-            var person = Read(name);
-            if (person != null) Delete(person);
-        }
-
-        /// <summary>
-        /// skapar en lista av objekt och för över skapade personen från Databasen in till listan.
-        /// </summary>
-
-        public List<Person> List(string filter = "", string orderBy = "Id", int max = 30)
-        {
-            var sql = "SELECT";
-            if (max > 0) sql += " TOP " + max.ToString();
-            sql += "* From Relatives";
-            if (filter != "") sql += "WHERE " + filter;
-            if (orderBy != "") sql += " ORDER BY " + orderBy;
-            var data = SqlDatabase.GetDataTable(sql);
-            var lst = new List<Person>();
-            foreach (DataRow row in data.Rows)
+            return new Person
             {
-                lst.Add(GetPersonObject(row));
-            }
-            return lst;
+                FirstName = row["firstName"].ToString(),
+                LastName = row["lastName"].ToString(),
+                BirthDate = row["birthDate"].ToString(),
+                DeathDate = row["deathDate"].ToString(),
+                BirthCity = row["birthCity"].ToString(),
+                DeathCity = row["deathCity"].ToString(),
+                MotherId = (int)row["motherId"],
+                FatherId = (int)row["fatherId"],
+                Id = (int)row["Id"]
+            };
         }
 
         /// <summary>
-        /// hämtar en persons föräldrar
+        /// en metod som fyller på alla parametrar i en tuple och returnerar denne.
         /// </summary>
-
-        public void GetParents(Person person, out Person mother, out Person father)
+        private (string, string)[] FillParameters(Person person)
         {
-            mother = Read(person.MotherId);
-            father = Read(person.FatherId);
-        }
-
-        /// <summary>
-        /// sätter en persons föräldar
-        /// </summary>
-
-        public void SetParents(Person child, Person mother, Person father)
-        {
-            child.MotherId = mother.Id;
-            child.FatherId = father.Id;
-
-            Update(child);
-        }
-
-        /// <summary>
-        /// hämtar en persons syskon
-        /// </summary>
-
-        public List<Person> GetSiblings(Person person)
-        {
-            var listOfSiblings = new List<Person>();
-            DataTable dt = new DataTable();
-            var sql = "SELECT * FROM Relatives WHERE Id != @Id AND MotherId = @motherId AND FatherId = @fatherId";
-            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()), ("@motherId", person.MotherId.ToString()), ("@fatherId", person.FatherId.ToString()));
-            if (dt.Rows.Count > 0)
+            return new (string, string)[]
             {
-                foreach (DataRow row in dt.Rows)
-                {
-                    listOfSiblings.Add(GetPersonObject(row));
-                }
-            }
-            return listOfSiblings;
-        }
-
-        /// <summary>
-        /// hämtar en persons barn
-        /// </summary>
-
-        public List<Person> GetChildren(Person person)
-        {
-            var listOfChildrens = new List<Person>();
-            DataTable dt = new DataTable();
-            var sql = "SELECT * FROM Relatives WHERE MotherId = @Id OR FatherId = @Id";
-            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()));
-            if (dt.Rows.Count > 0)
-            {
-                foreach (DataRow row in dt.Rows)
-                {
-                    listOfChildrens.Add(GetPersonObject(row));
-                }
-            }
-            return listOfChildrens;
-        }
-
-        /// <summary>
-        /// hämtar en persons farföräldrar
-        /// </summary>
-        public void GetGrandParents(Person person, out Person grandMother, out Person grandFather)
-        {
-            var mother = Read(person.MotherId);
-            var father = Read(person.FatherId);
-            grandMother = Read(mother.MotherId);
-            grandFather = Read(father.FatherId);
-        }
-
-        /// <summary>
-        /// metod som söker på det som användaren skriver in
-        /// </summary>
-
-        public List<Person> Search(string filter, string searchInput)
-        {
-            DataTable dt = new DataTable();
-            var searchResult = new List<Person>();
-            var sql = $"SELECT * FROM Relatives WHERE {filter} LIKE @searchInput";
-            dt = SqlDatabase.GetDataTable(sql, ("@searchInput", $"%{searchInput}%"));
-            if (dt.Rows.Count > 0)
-            {
-                foreach (DataRow row in dt.Rows)
-                {
-                    searchResult.Add(GetPersonObject(row));
-                }
-            }
-            return searchResult;
+            ("@FirstName", person.FirstName),
+            ("@LastName", person.LastName),
+            ("@BirthDate", person.BirthDate),
+            ("@DeathDate", person.DeathDate),
+            ("@BirthCity", person.BirthCity),
+            ("@DeathCity", person.DeathCity),
+            ("@MotherId", person.MotherId.ToString()),
+            ("@FatherId", person.FatherId.ToString())
+            };
         }
     }
 }
