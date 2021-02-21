@@ -31,8 +31,10 @@ namespace FamilyTree
             }
             else
             {
+                DatabaseName = "Master";
                 ExecuteSQL("CREATE DATABASE " + name);
                 Console.WriteLine("Database created!");
+                DatabaseName = name;
             }
         }
 
