@@ -206,6 +206,11 @@ namespace FamilyTree
         /// </summary>
         private static void FindSiblings(Person person)
         {
+            if (person.MotherId == 0 || person.FatherId == 0)
+            {
+                PrintStringRed($"Could not find any siblings to {person.FirstName}\n");
+                SpecificPersonMenu(person);
+            }
             var listOfSiblings = crud.GetSiblings(person);
             if (listOfSiblings.Count > 0)
             {
