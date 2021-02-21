@@ -6,12 +6,11 @@ namespace FamilyTree
     internal class Program
     {
         private static CRUD crud = new CRUD();
-        private static SQLDatabase db = new SQLDatabase();
 
         private static void Main(string[] args)
         {
             CreateDatabase("Genealogy");
-            CreateTable("Relatives");
+            CreateTable();
             InitializeRelatives();
             MainMenu();
         }
@@ -46,7 +45,7 @@ namespace FamilyTree
         /// <param name="databaseName"></param>
         private static void CreateDatabase(string databaseName)
         {
-            db.CreateDatabase(databaseName);
+            crud.CreateDatabase(databaseName);
         }
 
         /// <summary>
@@ -59,9 +58,9 @@ namespace FamilyTree
             string firstName = Console.ReadLine();
             Console.Write("Enter Last name: ");
             string lastName = Console.ReadLine();
-            Console.Write("Enter birth date(dd/mm-yyyy)");
+            Console.Write("Enter birth date (dd/mm-yyyy): ");
             string birthDate = Console.ReadLine();
-            Console.Write("Enter death date(dd/mm-yyyy)");
+            Console.Write("Enter death date (dd/mm-yyyy): ");
             string deathDate = Console.ReadLine();
             Console.Write("Enter birth city: ");
             string birthCity = Console.ReadLine();
@@ -96,10 +95,10 @@ namespace FamilyTree
         /// <summary>
         /// skapar tabell
         /// </summary>
-        private static void CreateTable(string tableName)
+        private static void CreateTable()
         {
-            db.CreateTable(tableName,
-                "Id int NOT NULL IDENTITY(1,1) PRIMARY KEY," +
+            string tableName = "Relatives";
+            string fields = "Id int NOT NULL IDENTITY(1,1) PRIMARY KEY," +
                 "firstName varchar(50)," +
                 "lastName varchar(50)," +
                 "birthDate varchar(50)," +
@@ -107,7 +106,9 @@ namespace FamilyTree
                 "birthCity varchar(50)," +
                 "deathCity varchar(50)," +
                 "motherId int," +
-                "fatherId int");
+                "fatherId int";
+
+            crud.CreateTable(tableName, fields);
         }
 
         /// <summary>
@@ -163,16 +164,28 @@ namespace FamilyTree
         }
 
         /// <summary>
-        /// en metod som skriver ut en persons farföräldrar om de finns i databasen.
+        /// en metod som letar upp och skriver ut en persons farföräldrar om de finns i databasen.
         /// </summary>
         private static void FindGrandParents(Person person)
         {
-            crud.GetGrandParents(person, out Person grandMother, out Person grandFather);
-            string output = grandMother != null ? $"{person.FirstName}'s grandmother:\n{grandMother}" : $"Could not find {person.FirstName}'s grandmother in the database";
-            Console.WriteLine(output);
-            output = grandFather != null ? $"{person.FirstName}'s grandFather:\n{grandFather}" : $"Could not find {person.FirstName}'s grandfather in the database";
-            Console.WriteLine(output);
+            crud.GetGrandParents(person, out Person dadsFather, out Person dadsMother, out Person momsFather, out Person momsMother);
+            Console.WriteLine("Grandparents on fathers side : ");
+            PrintGrandParents(person, dadsFather, dadsMother);
+            Console.WriteLine("Grandparents on mothers side: ");
+            PrintGrandParents(person, momsFather, momsMother);
             SpecificPersonMenu(person);
+        }
+
+        /// <summary>
+        /// skriver ut en persons farföräldrar
+        /// </summary>
+
+        private static void PrintGrandParents(Person person, Person grandFather, Person grandMother)
+        {
+            string output = grandFather != null ? $"{grandFather}" : $"Could not find {person.FirstName}'s grandfather in the database";
+            Console.WriteLine(output);
+            output = grandMother != null ? $"{grandMother}" : $"Could not find {person.FirstName}'s grandmother in the database";
+            Console.WriteLine(output);
         }
 
         /// <summary>
@@ -216,11 +229,11 @@ namespace FamilyTree
         private static void FindSimiliarCity(Person person, string filter)
         {
             string city = filter == "BirthCity" ? city = person.BirthCity : city = person.DeathCity;
-            var personsBirthCity = crud.Search(filter, city);
-            if (personsBirthCity.Count > 0)
+            var personCity = crud.Search(filter, city, person);
+            if (personCity.Count > 0)
             {
                 Console.WriteLine($"persons with the same city as {person.FirstName}");
-                foreach (var item in personsBirthCity)
+                foreach (var item in personCity)
                 {
                     Console.WriteLine(item);
                 }
@@ -391,42 +404,6 @@ namespace FamilyTree
                 BirthCity = "Mjölby",
                 DeathCity = "Nässjö"
             };
-            Person josefMöller = new Person()
-            {
-                FirstName = "Josef",
-                LastName = "Möller",
-                BirthDate = "6/4-1886",
-                DeathDate = "16/6-1956",
-                BirthCity = "Nöbbele",
-                DeathCity = "Nöbbele"
-            };
-            Person amaliaMöller = new Person()
-            {
-                FirstName = "Amalia",
-                LastName = "Möller",
-                BirthDate = "19/12-1880",
-                DeathDate = "12/2-1969",
-                BirthCity = "Herråkra",
-                DeathCity = "Nöbbele"
-            };
-            Person karlForsberg = new Person()
-            {
-                FirstName = "Karl",
-                LastName = "Forsberg",
-                BirthDate = "23/6-1868",
-                DeathDate = "15/1-1955",
-                BirthCity = "Västfärnebo",
-                DeathCity = "Västfärnebo"
-            };
-            Person olgaForsberg = new Person()
-            {
-                FirstName = "Olga",
-                LastName = "Forsberg",
-                BirthDate = "0/0-1896",
-                DeathDate = "0/0-1929",
-                BirthCity = "Kila",
-                DeathCity = "Västfärnebo"
-            };
 
             var listOfPersonObjects = new List<Person>()
             {
@@ -447,10 +424,6 @@ namespace FamilyTree
                 sixtenArgulander,
                 davidMöller,
                 annaLisaMöller,
-                josefMöller,
-                amaliaMöller,
-                karlForsberg,
-                olgaForsberg
             };
 
             foreach (var person in listOfPersonObjects)
@@ -468,8 +441,6 @@ namespace FamilyTree
             crud.SetParents(child: willisMöller, mother: annaLisaMöller, father: davidMöller);
             crud.SetParents(child: gullBrittMöller, mother: annaLisaMöller, father: davidMöller);
             crud.SetParents(child: birgittaJönsson, mother: gulliPettersson, father: brorPettersson);
-            crud.SetParents(child: davidMöller, mother: amaliaMöller, father: josefMöller);
-            crud.SetParents(child: lenaArgulander, mother: olgaForsberg, father: karlForsberg);
         }
 
         /// <summary>
@@ -483,8 +454,8 @@ namespace FamilyTree
             {
                 Console.WriteLine("What would you like to do?");
                 Console.WriteLine("[1]. Print full family tree");
-                Console.WriteLine("[2]. Select specific person");
-                Console.WriteLine("[3]. Find person by search");
+                Console.WriteLine("[2]. Select specific person from list");
+                Console.WriteLine("[3]. Select specific person by search");
                 Console.WriteLine("[4]. Create new person");
                 Console.WriteLine("\n[5]. Exit program");
                 int.TryParse(Console.ReadLine(), out choice);
@@ -514,8 +485,7 @@ namespace FamilyTree
                     break;
 
                 case 2:
-                    var listOfRelatives = crud.List();
-                    SelectSpecificPerson(listOfRelatives);
+                    SelectSpecificPerson(crud.List());
                     break;
 
                 case 3:
@@ -527,6 +497,8 @@ namespace FamilyTree
                     break;
 
                 case 5:
+                    Console.Clear();
+                    Console.WriteLine("See you next time!");
                     Environment.Exit(1);
                     break;
             }
@@ -628,9 +600,9 @@ namespace FamilyTree
         /// </summary>
         private static void SelectSpecificPerson(List<Person> listOfRelatives)
         {
+            int mainMenu;
             int choice;
             int counter = 1;
-            int mainMenu = counter;
             do
             {
                 foreach (var person in listOfRelatives)
@@ -638,6 +610,7 @@ namespace FamilyTree
                     Console.WriteLine($"[{counter}] {person.FirstName} {person.LastName}");
                     counter++;
                 }
+                mainMenu = counter;
                 Console.WriteLine($"\n[{mainMenu}] Return to Main menu");
                 Console.Write("\nSelect the number next to the person you want to find out more about: ");
                 int.TryParse(Console.ReadLine(), out choice);
@@ -810,7 +783,7 @@ namespace FamilyTree
             {
                 child.FatherId = parent.Id;
                 crud.Update(child);
-                Console.WriteLine($"{child.FirstName} {child.LastName} father changed to {parent.FirstName} {parent.LastName}");
+                Console.WriteLine($"{child.FirstName} {child.LastName}´s father changed to {parent.FirstName} {parent.LastName}");
             }
             else
             {

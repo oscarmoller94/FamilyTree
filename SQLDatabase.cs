@@ -21,30 +21,6 @@ namespace FamilyTree
         internal string DatabaseName { get; set; }
 
         /// <summary>
-        /// ändrar en tabell
-        /// </summary>
-        internal void AlterTable(string name, string fields)
-        {
-            ExecuteSQL($"ALTER TABLE {name} {fields};");
-        }
-
-        /// <summary>
-        /// ändrar en tabell och lägger till fält
-        /// </summary>
-        internal void AlterTableAdd(string name, string fields)
-        {
-            ExecuteSQL($"ALTER TABLE {name} ADD {fields};");
-        }
-
-        /// <summary>
-        /// ändrar en tabell och tar bort fält
-        /// </summary>
-        internal void AlterTableDrop(string name, string field)
-        {
-            ExecuteSQL($"ALTER TABLE {name} DROP COLUMN {field};");
-        }
-
-        /// <summary>
         /// skapar en databas om inte det redan finns en databas med samma namn
         /// </summary>
         internal void CreateDatabase(string name)
@@ -57,7 +33,6 @@ namespace FamilyTree
             {
                 ExecuteSQL("CREATE DATABASE " + name);
                 Console.WriteLine("Database created!");
-                DatabaseName = name;
             }
         }
 

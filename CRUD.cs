@@ -70,12 +70,14 @@ namespace FamilyTree
         /// <summary>
         /// hämtar en persons farföräldrar
         /// </summary>
-        public void GetGrandParents(Person person, out Person grandMother, out Person grandFather)
+        public void GetGrandParents(Person person, out Person dadsFather, out Person dadsMother, out Person momsFather, out Person momsMother)
         {
-            var mother = Read(person.MotherId);
             var father = Read(person.FatherId);
-            grandMother = Read(mother.MotherId);
-            grandFather = Read(father.FatherId);
+            dadsFather = Read(father.FatherId);
+            dadsMother = Read(father.MotherId);
+            var mother = Read(person.MotherId);
+            momsFather = Read(mother.FatherId);
+            momsMother = Read(mother.MotherId);
         }
 
         /// <summary>
@@ -193,6 +195,26 @@ namespace FamilyTree
             return searchResult;
         }
 
+        /// <summary>
+        /// Metod som skriver in det användaren skriver in, ser till att perosnen som söker inte kommer med i sökningen.
+        /// </summary>
+
+        public List<Person> Search(string filter, string searchInput, Person person)
+        {
+            DataTable dt = new DataTable();
+            var searchResult = new List<Person>();
+            var sql = $"SELECT * FROM Relatives WHERE Id != @Id AND {filter} LIKE @searchInput";
+            dt = SqlDatabase.GetDataTable(sql, ("@Id", person.Id.ToString()), ("@searchInput", $"%{searchInput}%"));
+            if (dt.Rows.Count > 0)
+            {
+                foreach (DataRow row in dt.Rows)
+                {
+                    searchResult.Add(GetPersonObject(row));
+                }
+            }
+            return searchResult;
+        }
+
         public void SetParents(Person child, Person mother, Person father)
         {
             child.MotherId = mother.Id;
@@ -221,6 +243,17 @@ namespace FamilyTree
            ("@FatherId", person.FatherId.ToString()),
            ("@Id", person.Id.ToString())
            );
+        }
+
+        public void CreateDatabase(string databaseName)
+        {
+            var dt = new SQLDatabase();
+            dt.CreateDatabase(databaseName);
+        }
+
+        public void CreateTable(string tableName, string fields)
+        {
+            SqlDatabase.CreateTable(tableName, fields);
         }
 
         /// <summary>

@@ -11,9 +11,10 @@
         public int Id { get; set; }
         public string LastName { get; set; }
         public int MotherId { get; set; }
+
         public override string ToString()
         {
-            return ($"|Id:{Id}| |{FirstName} {LastName}| |{BirthDate} - {DeathDate}| |Born: {BirthCity}| |Died: {DeathCity}| |M.id: {MotherId}| |F.id : {FatherId}|\n");
+            return ($"|Id:{Id}| |{FirstName} {LastName}| |{BirthDate} - {DeathDate}| |Born in: {BirthCity}| |Died in: {DeathCity}| |M.id: {MotherId}| |F.id: {FatherId}|\n");
         }
     }
 }
